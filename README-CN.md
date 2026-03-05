@@ -4,7 +4,7 @@
 
 # terraform-alicloud-multi-region-active-active-disaster-recovery
 
-该 Terraform 模块在阿里云上创建综合性的[多区域双活容灾架构](https://www.alibabacloud.com/help/doc-detail/146504.htm)，包括 VPC、ECS 实例、PolarDB 集群、ALB 负载均衡器，以及通过云企业网（CEN）实现的跨区域连接，确保高可用性和业务连续性。
+该 Terraform 模块在阿里云上创建综合性的[多区域双活容灾架构](https://www.aliyun.com/solution/tech-solution/tltcamanidl)，包括 VPC、ECS 实例、PolarDB 集群、ALB 负载均衡器，以及通过云企业网（CEN）实现的跨区域连接，确保高可用性和业务连续性。
 
 ## 架构图
 
@@ -13,7 +13,7 @@
 ┌─────────────────┐            ┌─────────────────┐
 │      VPC A      │            │      VPC B      │
 │  ┌───────────┐  │            │  ┌───────────┐  │
-│  │  交换机   │  │            │  │  交换机   │  │
+│  │  交换机    │  │            │  │  交换机    │  │
 │  │ ┌───────┐ │  │            │  │ ┌───────┐ │  │
 │  │ │  ECS  │ │  │            │  │ │  ECS  │ │  │
 │  │ └───────┘ │  │            │  │ └───────┘ │  │
@@ -58,7 +58,16 @@ module "disaster_recovery" {
     alicloud.region_B = alicloud.region_B
   }
 
-  # 区域 A 交换机配置
+  # VPC 配置（可选 - 有默认值）
+  region_a_vpc_config = {
+    cidr_block = "10.0.0.0/16"
+  }
+
+  region_b_vpc_config = {
+    cidr_block = "172.16.0.0/16"
+  }
+
+  # 交换机配置（必需 - 每个区域必须有 2 个）
   region_a_vswitch_configs = {
     vsw1 = {
       cidr_block = "10.0.1.0/24"
@@ -70,7 +79,6 @@ module "disaster_recovery" {
     }
   }
 
-  # 区域 B 交换机配置
   region_b_vswitch_configs = {
     vsw1 = {
       cidr_block = "172.16.1.0/24"
@@ -82,7 +90,7 @@ module "disaster_recovery" {
     }
   }
 
-  # 区域 A 的 ECS 实例
+  # ECS 实例（必需）
   region_a_ecs_instances = {
     app001 = {
       instance_name        = "APP001"
@@ -94,7 +102,6 @@ module "disaster_recovery" {
     }
   }
 
-  # 区域 B 的 ECS 实例
   region_b_ecs_instances = {
     app002 = {
       instance_name        = "APP002"
@@ -106,46 +113,9 @@ module "disaster_recovery" {
     }
   }
 
-  # ECS 密码
+  # 密码（必需）
   ecs_instance_password = "YourPassword123!"
-
-  # PolarDB 配置
-  polardb_region_a_vswitch_key = "vsw1"
-  polardb_region_b_vswitch_key = "vsw1"
-  db_password                  = "YourDBPassword123!"
-
-  # ALB 可用区映射
-  region_a_alb_zone_mappings = [
-    {
-      vswitch_key = "vsw1"
-      zone_id     = "cn-shanghai-e"
-    }
-  ]
-
-  region_b_alb_zone_mappings = [
-    {
-      vswitch_key = "vsw1"
-      zone_id     = "cn-beijing-k"
-    }
-  ]
-
-  # CEN 可用区映射
-  region_a_cen_zone_mappings = [
-    {
-      zone_id     = "cn-shanghai-e"
-      vswitch_key = "vsw1"
-    }
-  ]
-
-  region_b_cen_zone_mappings = [
-    {
-      zone_id     = "cn-beijing-k"
-      vswitch_key = "vsw1"
-    }
-  ]
-
-  # CEN 对等连接配置
-  cen_peer_region_id = "cn-shanghai"
+  db_password           = "YourDBPassword123!"
 }
 ```
 
@@ -220,6 +190,7 @@ No modules.
 | [alicloud_vpc.vpc_b](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/vpc) | resource |
 | [alicloud_vswitch.region_a_vswitches](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/vswitch) | resource |
 | [alicloud_vswitch.region_b_vswitches](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/vswitch) | resource |
+| [alicloud_regions.region_a](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/data-sources/regions) | data source |
 
 ## Inputs
 
@@ -232,7 +203,6 @@ No modules.
 | <a name="input_cen_peer_auto_publish_route"></a> [cen\_peer\_auto\_publish\_route](#input\_cen\_peer\_auto\_publish\_route) | Whether to enable auto publish route for CEN peer attachment | `bool` | `true` | no |
 | <a name="input_cen_peer_bandwidth"></a> [cen\_peer\_bandwidth](#input\_cen\_peer\_bandwidth) | Bandwidth in Gbps for CEN peer attachment | `number` | `2` | no |
 | <a name="input_cen_peer_bandwidth_type"></a> [cen\_peer\_bandwidth\_type](#input\_cen\_peer\_bandwidth\_type) | Bandwidth type for CEN peer attachment | `string` | `"DataTransfer"` | no |
-| <a name="input_cen_peer_region_id"></a> [cen\_peer\_region\_id](#input\_cen\_peer\_region\_id) | Region ID for the peer transit router | `string` | n/a | yes |
 | <a name="input_cen_region_a_vpc_attachment_name"></a> [cen\_region\_a\_vpc\_attachment\_name](#input\_cen\_region\_a\_vpc\_attachment\_name) | Name of the VPC attachment for region 1 | `string` | `"vpc_attachment_1"` | no |
 | <a name="input_cen_region_b_vpc_attachment_name"></a> [cen\_region\_b\_vpc\_attachment\_name](#input\_cen\_region\_b\_vpc\_attachment\_name) | Name of the VPC attachment for region 2 | `string` | `"vpc_attachment_2"` | no |
 | <a name="input_custom_nginx_script"></a> [custom\_nginx\_script](#input\_custom\_nginx\_script) | Custom nginx installation script to override the default one | `string` | `null` | no |
@@ -246,31 +216,21 @@ No modules.
 | <a name="input_polardb_account_description"></a> [polardb\_account\_description](#input\_polardb\_account\_description) | Description for PolarDB account | `string` | `"terraform-example"` | no |
 | <a name="input_polardb_account_name"></a> [polardb\_account\_name](#input\_polardb\_account\_name) | Account name for PolarDB database | `string` | `"terraform"` | no |
 | <a name="input_polardb_config"></a> [polardb\_config](#input\_polardb\_config) | PolarDB cluster configuration including database type, version, and node class | <pre>object({<br/>    db_type                  = string<br/>    db_version               = string<br/>    db_node_class            = string<br/>    pay_type                 = string<br/>    description              = string<br/>    loose_polar_log_bin      = string<br/>    db_cluster_ip_array_name = string<br/>  })</pre> | <pre>{<br/>  "db_cluster_ip_array_name": "default",<br/>  "db_node_class": "polar.mysql.x4.large",<br/>  "db_type": "MySQL",<br/>  "db_version": "8.0",<br/>  "description": "terraform-example",<br/>  "loose_polar_log_bin": "ON",<br/>  "pay_type": "PostPaid"<br/>}</pre> | no |
-| <a name="input_polardb_database_name"></a> [polardb\_database\_name](#input\_polardb\_database\_name) | Database name for PolarDB | `string` | `"terraform-example"` | no |
+| <a name="input_polardb_database_name"></a> [polardb\_database\_name](#input\_polardb\_database\_name) | Database name for PolarDB | `string` | `"tfexample"` | no |
 | <a name="input_polardb_region_a_account_privilege"></a> [polardb\_region\_a\_account\_privilege](#input\_polardb\_region\_a\_account\_privilege) | Account privilege for PolarDB in region 1 | `string` | `"ReadOnly"` | no |
-| <a name="input_polardb_region_a_instance_keys"></a> [polardb\_region\_a\_instance\_keys](#input\_polardb\_region\_a\_instance\_keys) | List of ECS instance keys to whitelist in region 1 PolarDB cluster | `list(string)` | `[]` | no |
-| <a name="input_polardb_region_a_vswitch_key"></a> [polardb\_region\_a\_vswitch\_key](#input\_polardb\_region\_a\_vswitch\_key) | Vswitch key for PolarDB cluster in region 1 | `string` | n/a | yes |
 | <a name="input_polardb_region_b_account_privilege"></a> [polardb\_region\_b\_account\_privilege](#input\_polardb\_region\_b\_account\_privilege) | Account privilege for PolarDB in region 2 | `string` | `"ReadWrite"` | no |
-| <a name="input_polardb_region_b_instance_keys"></a> [polardb\_region\_b\_instance\_keys](#input\_polardb\_region\_b\_instance\_keys) | List of ECS instance keys to whitelist in region 2 PolarDB cluster | `list(string)` | `[]` | no |
-| <a name="input_polardb_region_b_vswitch_key"></a> [polardb\_region\_b\_vswitch\_key](#input\_polardb\_region\_b\_vswitch\_key) | Vswitch key for PolarDB cluster in region 2 | `string` | n/a | yes |
-| <a name="input_region_a_alb_server_keys"></a> [region\_a\_alb\_server\_keys](#input\_region\_a\_alb\_server\_keys) | List of ECS instance keys to add to region 1 ALB server group | `list(string)` | `[]` | no |
-| <a name="input_region_a_alb_zone_mappings"></a> [region\_a\_alb\_zone\_mappings](#input\_region\_a\_alb\_zone\_mappings) | Zone mappings for ALB in region 1 | <pre>list(object({<br/>    vswitch_key = string<br/>    zone_id     = string<br/>  }))</pre> | n/a | yes |
 | <a name="input_region_a_cen_route_entries"></a> [region\_a\_cen\_route\_entries](#input\_region\_a\_cen\_route\_entries) | Map of CEN transit router route entries for region 1 | <pre>map(object({<br/>    destination_cidr_block = string<br/>    next_hop_type          = string<br/>  }))</pre> | `{}` | no |
-| <a name="input_region_a_cen_zone_mappings"></a> [region\_a\_cen\_zone\_mappings](#input\_region\_a\_cen\_zone\_mappings) | Zone mappings for CEN transit router in region 1 | <pre>list(object({<br/>    zone_id     = string<br/>    vswitch_key = string<br/>  }))</pre> | n/a | yes |
 | <a name="input_region_a_ecs_instances"></a> [region\_a\_ecs\_instances](#input\_region\_a\_ecs\_instances) | Map of ECS instances to create in region 1 | <pre>map(object({<br/>    instance_name        = string<br/>    instance_type        = string<br/>    vswitch_key          = string<br/>    image_id             = string<br/>    system_disk_category = string<br/>    instance_charge_type = string<br/>  }))</pre> | n/a | yes |
 | <a name="input_region_a_route_entries"></a> [region\_a\_route\_entries](#input\_region\_a\_route\_entries) | Map of custom route entries for region 1 VPC route table | <pre>map(object({<br/>    destination_cidrblock = string<br/>    nexthop_type          = string<br/>  }))</pre> | `{}` | no |
 | <a name="input_region_a_security_group_rules"></a> [region\_a\_security\_group\_rules](#input\_region\_a\_security\_group\_rules) | Map of security group rules for region 1 | <pre>map(object({<br/>    type        = string<br/>    ip_protocol = string<br/>    nic_type    = string<br/>    policy      = string<br/>    port_range  = string<br/>    priority    = number<br/>    cidr_ip     = string<br/>  }))</pre> | <pre>{<br/>  "allow_ssh": {<br/>    "cidr_ip": "0.0.0.0/0",<br/>    "ip_protocol": "all",<br/>    "nic_type": "intranet",<br/>    "policy": "accept",<br/>    "port_range": "22/22",<br/>    "priority": 1,<br/>    "type": "ingress"<br/>  }<br/>}</pre> | no |
-| <a name="input_region_a_vpc_config"></a> [region\_a\_vpc\_config](#input\_region\_a\_vpc\_config) | VPC configuration for primary region including VPC name and CIDR block | <pre>object({<br/>    vpc_name   = string<br/>    cidr_block = string<br/>  })</pre> | <pre>{<br/>  "cidr_block": "10.0.0.0/16",<br/>  "vpc_name": "vpc1"<br/>}</pre> | no |
-| <a name="input_region_a_vswitch_configs"></a> [region\_a\_vswitch\_configs](#input\_region\_a\_vswitch\_configs) | Map of vswitch configurations for region 1, each with CIDR block and zone ID | <pre>map(object({<br/>    cidr_block = string<br/>    zone_id    = string<br/>  }))</pre> | n/a | yes |
-| <a name="input_region_b_alb_server_keys"></a> [region\_b\_alb\_server\_keys](#input\_region\_b\_alb\_server\_keys) | List of ECS instance keys to add to region 2 ALB server group | `list(string)` | `[]` | no |
-| <a name="input_region_b_alb_zone_mappings"></a> [region\_b\_alb\_zone\_mappings](#input\_region\_b\_alb\_zone\_mappings) | Zone mappings for ALB in region 2 | <pre>list(object({<br/>    vswitch_key = string<br/>    zone_id     = string<br/>  }))</pre> | n/a | yes |
+| <a name="input_region_a_vpc_config"></a> [region\_a\_vpc\_config](#input\_region\_a\_vpc\_config) | VPC configuration for primary region including VPC name and CIDR block | <pre>object({<br/>    vpc_name   = optional(string, "vpc1")<br/>    cidr_block = string<br/>  })</pre> | n/a | yes |
+| <a name="input_region_a_vswitch_configs"></a> [region\_a\_vswitch\_configs](#input\_region\_a\_vswitch\_configs) | Map of vswitch configurations for region 1, each with CIDR block and zone ID. Must contain exactly 2 vswitches. | <pre>map(object({<br/>    cidr_block = string<br/>    zone_id    = string<br/>  }))</pre> | n/a | yes |
 | <a name="input_region_b_cen_route_entries"></a> [region\_b\_cen\_route\_entries](#input\_region\_b\_cen\_route\_entries) | Map of CEN transit router route entries for region 2 | <pre>map(object({<br/>    destination_cidr_block = string<br/>    next_hop_type          = string<br/>  }))</pre> | `{}` | no |
-| <a name="input_region_b_cen_zone_mappings"></a> [region\_b\_cen\_zone\_mappings](#input\_region\_b\_cen\_zone\_mappings) | Zone mappings for CEN transit router in region 2 | <pre>list(object({<br/>    zone_id     = string<br/>    vswitch_key = string<br/>  }))</pre> | n/a | yes |
 | <a name="input_region_b_ecs_instances"></a> [region\_b\_ecs\_instances](#input\_region\_b\_ecs\_instances) | Map of ECS instances to create in region 2 | <pre>map(object({<br/>    instance_name        = string<br/>    instance_type        = string<br/>    vswitch_key          = string<br/>    image_id             = string<br/>    system_disk_category = string<br/>    instance_charge_type = string<br/>  }))</pre> | n/a | yes |
 | <a name="input_region_b_route_entries"></a> [region\_b\_route\_entries](#input\_region\_b\_route\_entries) | Map of custom route entries for region 2 VPC route table | <pre>map(object({<br/>    destination_cidrblock = string<br/>    nexthop_type          = string<br/>  }))</pre> | `{}` | no |
 | <a name="input_region_b_security_group_rules"></a> [region\_b\_security\_group\_rules](#input\_region\_b\_security\_group\_rules) | Map of security group rules for region 2 | <pre>map(object({<br/>    type        = string<br/>    ip_protocol = string<br/>    nic_type    = string<br/>    policy      = string<br/>    port_range  = string<br/>    priority    = number<br/>    cidr_ip     = string<br/>  }))</pre> | <pre>{<br/>  "allow_ssh": {<br/>    "cidr_ip": "0.0.0.0/0",<br/>    "ip_protocol": "all",<br/>    "nic_type": "intranet",<br/>    "policy": "accept",<br/>    "port_range": "22/22",<br/>    "priority": 1,<br/>    "type": "ingress"<br/>  }<br/>}</pre> | no |
-| <a name="input_region_b_vpc_config"></a> [region\_b\_vpc\_config](#input\_region\_b\_vpc\_config) | VPC configuration for secondary region including VPC name and CIDR block | <pre>object({<br/>    vpc_name   = string<br/>    cidr_block = string<br/>  })</pre> | <pre>{<br/>  "cidr_block": "172.16.0.0/16",<br/>  "vpc_name": "vpc2"<br/>}</pre> | no |
-| <a name="input_region_b_vswitch_configs"></a> [region\_b\_vswitch\_configs](#input\_region\_b\_vswitch\_configs) | Map of vswitch configurations for region 2, each with CIDR block and zone ID | <pre>map(object({<br/>    cidr_block = string<br/>    zone_id    = string<br/>  }))</pre> | n/a | yes |
+| <a name="input_region_b_vpc_config"></a> [region\_b\_vpc\_config](#input\_region\_b\_vpc\_config) | VPC configuration for secondary region including VPC name and CIDR block | <pre>object({<br/>    vpc_name   = optional(string, "vpc2")<br/>    cidr_block = string<br/>  })</pre> | n/a | yes |
+| <a name="input_region_b_vswitch_configs"></a> [region\_b\_vswitch\_configs](#input\_region\_b\_vswitch\_configs) | Map of vswitch configurations for region 2, each with CIDR block and zone ID. Must contain exactly 2 vswitches. | <pre>map(object({<br/>    cidr_block = string<br/>    zone_id    = string<br/>  }))</pre> | n/a | yes |
 
 ## Outputs
 
@@ -307,7 +267,6 @@ No modules.
 ## 示例
 
 * [complete](https://github.com/alibabacloud-automation/terraform-alicloud-multi-region-active-active-disaster-recovery/tree/main/examples/complete)
-* [basic](https://github.com/alibabacloud-automation/terraform-alicloud-multi-region-active-active-disaster-recovery/tree/main/examples/basic)
 
 ## 提交问题
 
